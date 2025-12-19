@@ -17,14 +17,20 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
 
 ### Option A: One-Click Template Deploy (Auto-Generated Passwords)
 
-1. In Dokploy, go to **Templates**
-2. Click **Settings** (gear icon) and set **Base URL** to:
+1. In Dokploy, go to **Projects**
+2. Create a Project or open an existing Project
+3. Click **Create Service**
+4. Choose **Template**
+5. Set the **Base URL** to:
    ```
    https://raw.githubusercontent.com/itsmereal/dokploy-wp/main
    ```
-3. Search for **"WordPress + Redis Stack"**
-4. Click **Deploy** - passwords are auto-generated!
-5. Configure your domain in the **Domains** tab
+6. You will find **"WordPress + Redis Stack"**
+7. Click **Create** and **Confirm**
+8. Click **Deploy** when the service is created
+9. Once deployed, go to the **Domains** tab and set your domain
+10. Go back to the **General** tab and click **Reload**
+11. Your WordPress site is ready!
 
 ### Option B: Manual Compose Deploy
 

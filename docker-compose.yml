@@ -139,12 +139,17 @@ services:
         max_attempts: 3
 
   filebrowser:
-    build:
-      context: ./filebrowser
-      dockerfile: Dockerfile
+    image: filebrowser/filebrowser:s6
+    environment:
+      - FB_DATABASE=/database/filebrowser.db
+      - FB_ROOT=/srv
+      - FB_ADDRESS=0.0.0.0
+      - FB_PORT=80
+      - FB_USERNAME=${FB_USERNAME:-admin}
+      - FB_PASSWORD=${FB_PASSWORD:-admin}
     volumes:
       - wordpress_data:/srv
-      - filebrowser_data_new:/database
+      - filebrowser_data:/database
     ports:
       - "80"
     networks:
@@ -200,4 +205,4 @@ volumes:
   wordpress_data:
   db_data:
   redis_data:
-  filebrowser_data_new:
+  filebrowser_data:

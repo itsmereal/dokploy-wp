@@ -56,12 +56,3 @@ jobs:
           tags: ${{ env.IMAGE_PREFIX }}-plugin-installer:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Build and push FileBrowser image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./filebrowser
-          push: true
-          tags: ${{ env.IMAGE_PREFIX }}-filebrowser:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

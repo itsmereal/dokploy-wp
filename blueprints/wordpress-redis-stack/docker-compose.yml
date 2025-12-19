@@ -103,7 +103,14 @@ services:
       - internal
 
   filebrowser:
-    image: ghcr.io/itsmereal/dokploy-wp-filebrowser:latest
+    image: filebrowser/filebrowser:s6
+    environment:
+      - FB_DATABASE=/database/filebrowser.db
+      - FB_ROOT=/srv
+      - FB_ADDRESS=0.0.0.0
+      - FB_PORT=80
+      - FB_USERNAME=${FB_USERNAME:-admin}
+      - FB_PASSWORD=${FB_PASSWORD}
     volumes:
       - wordpress_data:/srv
       - filebrowser_data:/database

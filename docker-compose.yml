@@ -138,36 +138,6 @@ services:
         condition: on-failure
         max_attempts: 3
 
-  filebrowser:
-    image: filebrowser/filebrowser:s6
-    environment:
-      - FB_DATABASE=/database/filebrowser.db
-      - FB_ROOT=/srv
-      - FB_ADDRESS=0.0.0.0
-      - FB_PORT=80
-      - FB_USERNAME=${FB_USERNAME:-admin}
-      - FB_PASSWORD=${FB_PASSWORD:-admin}
-    volumes:
-      - wordpress_data:/srv
-      - filebrowser_data:/database
-    ports:
-      - "80"
-    networks:
-      - dokploy-network
-      - internal
-    deploy:
-      resources:
-        limits:
-          cpus: "${FILEBROWSER_CPU_LIMIT:-0.25}"
-          memory: "${FILEBROWSER_MEMORY_LIMIT:-128M}"
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    restart: unless-stopped
-
   phpmyadmin:
     image: phpmyadmin/phpmyadmin:latest
     environment:
@@ -203,6 +173,6 @@ networks:
 
 volumes:
   wordpress_data:
+    name: ${COMPOSE_PROJECT_NAME:-wordpress}_data
   db_data:
   redis_data:
-  filebrowser_data:

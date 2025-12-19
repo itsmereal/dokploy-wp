@@ -10,7 +10,6 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
 | **Nginx** | Optimized reverse proxy with caching and security headers |
 | **MariaDB 10.6** | Database server with health checks |
 | **Redis** | Object caching for improved performance |
-| **FileBrowser** | Web-based file manager |
 | **phpMyAdmin** | Database administration interface |
 | **Plugin Installer** | Automatically installs Redis Object Cache plugin |
 
@@ -47,16 +46,14 @@ Go to the **Domains** tab and add:
 | Domain | Service | Port |
 |--------|---------|------|
 | yourdomain.com | nginx | 80 |
-| files.yourdomain.com | filebrowser | 80 |
 | pma.yourdomain.com | phpmyadmin | 80 |
 
 **Default Credentials:**
 | Service | Username | Password |
 |---------|----------|----------|
-| FileBrowser | admin | `admin` |
 | phpMyAdmin | wordpress | (your MYSQL_PASSWORD) |
 
-### 5. Activate Redis Cache
+### Activate Redis Cache
 
 1. Log in to WordPress admin (`yourdomain.com/wp-admin`)
 2. Go to **Plugins > Installed Plugins**
@@ -123,8 +120,6 @@ Go to the **Domains** tab and add:
 | `DB_MEMORY_LIMIT` | 1G | MariaDB memory limit |
 | `REDIS_CPU_LIMIT` | 0.5 | Redis CPU limit |
 | `REDIS_MEMORY_LIMIT` | 512M | Redis memory limit |
-| `FILEBROWSER_CPU_LIMIT` | 0.25 | FileBrowser CPU limit |
-| `FILEBROWSER_MEMORY_LIMIT` | 128M | FileBrowser memory limit |
 | `PHPMYADMIN_CPU_LIMIT` | 0.5 | phpMyAdmin CPU limit |
 | `PHPMYADMIN_MEMORY_LIMIT` | 256M | phpMyAdmin memory limit |
 
@@ -153,13 +148,6 @@ wp cache flush
 wp core update
 ```
 
-## FileBrowser Default Credentials
-
-- **Username:** admin
-- **Password:** admin
-
-**Important:** Change these credentials immediately after first login.
-
 ## Volumes
 
 | Volume | Purpose |
@@ -167,15 +155,13 @@ wp core update
 | `wordpress_data` | WordPress files (/var/www/html) |
 | `db_data` | MariaDB data |
 | `redis_data` | Redis persistence |
-| `filebrowser_data` | FileBrowser database |
 
 ## Security Recommendations
 
 1. Set strong passwords for all database credentials
-2. Change FileBrowser default password
-3. Consider restricting access to phpMyAdmin and FileBrowser subdomains
-4. Enable Dokploy's built-in SSL/TLS
-5. Keep WordPress and plugins updated
+2. Consider restricting access to phpMyAdmin subdomain
+3. Enable Dokploy's built-in SSL/TLS
+4. Keep WordPress and plugins updated
 
 ## Troubleshooting
 

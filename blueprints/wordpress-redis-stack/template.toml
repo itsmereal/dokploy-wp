@@ -2,14 +2,12 @@
 main_domain = "${domain}"
 db_password = "${password:32}"
 db_root_password = "${password:32}"
-fb_password = "${password:16}"
 
 [config]
 env = [
   "MYSQL_ROOT_PASSWORD=${db_root_password}",
   "MYSQL_PASSWORD=${db_password}",
-  "WORDPRESS_DB_PASSWORD=${db_password}",
-  "FB_PASSWORD=${fb_password}"
+  "WORDPRESS_DB_PASSWORD=${db_password}"
 ]
 
 [[config.domains]]

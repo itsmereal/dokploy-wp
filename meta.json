@@ -3,7 +3,7 @@
     "id": "wordpress-redis-stack",
     "name": "WordPress + Redis Stack",
     "version": "1.0.0",
-    "description": "Production-ready WordPress with Nginx, Redis caching, FileBrowser, phpMyAdmin, and WP-CLI",
+    "description": "Production-ready WordPress with Nginx, Redis caching, phpMyAdmin, and WP-CLI",
     "logo": "logo.svg",
     "links": {
       "github": "https://github.com/itsmereal/dokploy-wp",

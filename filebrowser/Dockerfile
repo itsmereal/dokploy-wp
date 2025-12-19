@@ -1,8 +1,16 @@
 FROM alpine:3.19 AS builder
 
-# Download filebrowser binary
-RUN apk add --no-cache curl && \
-    curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | sh
+# Download filebrowser binary directly from GitHub releases
+RUN apk add --no-cache curl tar && \
+    ARCH=$(uname -m) && \
+    case "$ARCH" in \
+        x86_64) ARCH="amd64" ;; \
+        aarch64) ARCH="arm64" ;; \
+        armv7l) ARCH="armv7" ;; \
+    esac && \
+    curl -fsSL "https://github.com/filebrowser/filebrowser/releases/latest/download/linux-${ARCH}-filebrowser.tar.gz" -o /tmp/filebrowser.tar.gz && \
+    tar -xzf /tmp/filebrowser.tar.gz -C /usr/local/bin filebrowser && \
+    chmod +x /usr/local/bin/filebrowser
 
 FROM alpine:3.19
 

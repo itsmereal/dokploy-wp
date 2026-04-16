@@ -15,6 +15,8 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
 
 ## Quick Start
 
+Pick one of the two deploy methods below, then follow the shared **Post-Deploy Setup** steps.
+
 ### Option A: One-Click Template Deploy (Auto-Generated Passwords)
 
 1. In Dokploy, go to **Projects**
@@ -28,9 +30,6 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
 6. You will find **"WordPress + Redis Stack"**
 7. Click **Create** and **Confirm**
 8. Click **Deploy** when the service is created
-9. Once deployed, go to the **Domains** tab and set your domain
-10. Go back to the **General** tab and click **Reload**
-11. Your WordPress site is ready!
 
 ### Option B: Manual Compose Deploy
 
@@ -45,21 +44,27 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
    ```
 5. Click **Deploy**
 
-### Configure Domains
+## Post-Deploy Setup
+
+These steps apply to both deploy options.
+
+### 1. Configure Domains
 
 Go to the **Domains** tab and add:
 
 | Domain | Service | Port |
 |--------|---------|------|
 | yourdomain.com | nginx | 80 |
-| pma.yourdomain.com | phpmyadmin | 80 |
+| pma.yourdomain.com (optional) | phpmyadmin | 80 |
 
-**Default Credentials:**
-| Service | Username | Password |
-|---------|----------|----------|
-| phpMyAdmin | wordpress | (your MYSQL_PASSWORD) |
+Then return to the **General** tab and click **Reload**.
 
-### Activate Redis Cache
+**phpMyAdmin credentials:**
+| Username | Password |
+|----------|----------|
+| wordpress | (your `MYSQL_PASSWORD`) |
+
+### 2. Activate Redis Cache
 
 1. Log in to WordPress admin (`yourdomain.com/wp-admin`)
 2. Go to **Plugins > Installed Plugins**

@@ -1,3 +1,21 @@
+# Detect HTTPS when behind a reverse proxy (Traefik) or Cloudflare Tunnel.
+# X-Forwarded-Proto covers standard reverse-proxy setups; CF-Visitor covers
+# Cloudflare Tunnel cases where the upstream proxy may strip X-Forwarded-Proto.
+map $http_x_forwarded_proto $tls_via_xfp {
+    default "";
+    https   "1";
+}
+
+map $http_cf_visitor $tls_via_cfv {
+    default                    "";
+    "~\"scheme\":\"https\""    "1";
+}
+
+map "$tls_via_xfp$tls_via_cfv" $fastcgi_https {
+    default "";
+    ~1      on;
+}
+
 upstream php-fpm {
     server wordpress:9000;
 }
@@ -58,6 +76,7 @@ server {
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_param HTTPS $fastcgi_https if_not_empty;
 
         # Extended timeouts for long-running scripts
         fastcgi_read_timeout 300;

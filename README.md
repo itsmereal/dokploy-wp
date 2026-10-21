@@ -235,3 +235,15 @@ NGINX_CLIENT_MAX_BODY_SIZE=512M
 ## License
 
 MIT
+
+## Regular maintenance
+
+GitHub Actions rebuilds all images every Monday at 04:23 Asia/Taipei (Sunday 20:23 UTC). Scheduled builds pull current base images and disable build-layer caching so OS upgrades and package downloads run again. Push and pull-request builds reuse separate caches for each service and architecture.
+
+AMD64 and ARM64 builds run in parallel on native GitHub runners. Each PHP image must pass the patched-version and extension/configuration checks on both architectures. The exact tested images are pushed without rebuilding; public multi-architecture tags are published only after all builds succeed.
+
+Each successful run publishes `build-<run-id>-<attempt>` tags, listed in the workflow summaries. Use these versioned tags (or image digests) for reproducible deployments and rollback. `latest`, `sha-<commit>`, and the legacy `security-20261021` tag are moving aliases; a scheduled rebuild can change them.
+
+Dependabot opens weekly pull requests for GitHub Actions and Docker base-image updates. Maintainers review and merge compatible updates, monitor failed builds and upstream security advisories, update the PHP security minimums when needed, and trigger an immediate manual build for critical fixes. Weekly rebuilds do not replace security-advisory review.
+
+To update an existing Dokploy stack, back up the database and WordPress volume, select a successfully published version, pull the images, and redeploy with the same volumes. These repository workflows do not redeploy live sites. Update existing WordPress core, plugins, and themes separately through WordPress or WP-CLI, then restart PHP to clear OPcache.

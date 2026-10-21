@@ -5,6 +5,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "23 20 * * 0" # Monday 04:23 Asia/Taipei
 
 concurrency:
   group: docker-images-${{ github.ref }}
@@ -17,12 +19,19 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
+    runs-on: ${{ matrix.arch.runner }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        include:
+        arch:
+          - platform: linux/amd64
+            suffix: amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            suffix: arm64
+            runner: ubuntu-24.04-arm
+        service:
           - image: wordpress
             context: .
             file: wordpress/Dockerfile
@@ -47,29 +56,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build native image for validation
         uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.file }}
           pull: true
+          no-cache: ${{ github.event_name == 'schedule' }}
           load: true
-          platforms: linux/amd64
-          tags: local/dokploy-wp-${{ matrix.image }}:test
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          platforms: ${{ matrix.arch.platform }}
+          tags: local/dokploy-wp-${{ matrix.service.image }}:test
+          cache-from: type=gha,scope=${{ matrix.service.image }}-${{ matrix.arch.suffix }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.image }}-${{ matrix.arch.suffix }}
 
       - name: Verify patched PHP runtime
-        if: matrix.php
+        if: matrix.service.php
         env:
-          IMAGE: local/dokploy-wp-${{ matrix.image }}:test
-          SERVICE: ${{ matrix.image }}
+          IMAGE: local/dokploy-wp-${{ matrix.service.image }}:test
+          SERVICE: ${{ matrix.service.image }}
         run: |
           docker run --rm --network none --entrypoint ensure-patched-php "$IMAGE" --check-only
           if [ "$SERVICE" = wordpress ]; then
@@ -83,6 +93,18 @@ jobs:
             docker run --rm --network none --entrypoint apache2ctl "$IMAGE" -t
           fi
 
+      - name: Verify other container configurations
+        if: ${{ !matrix.service.php }}
+        env:
+          IMAGE: local/dokploy-wp-${{ matrix.service.image }}:test
+          SERVICE: ${{ matrix.service.image }}
+        run: |
+          if [ "$SERVICE" = nginx ]; then
+            docker run --rm --network none --entrypoint nginx "$IMAGE" -t
+          else
+            docker run --rm --network none --entrypoint bash "$IMAGE" -n /install-redis-plugin.sh
+          fi
+
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -91,21 +113,47 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish validated multi-architecture images
+      - name: Push tested image without rebuilding
         if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v5
+        env:
+          IMAGE: ${{ env.IMAGE_PREFIX }}-${{ matrix.service.image }}
+          LOCAL_IMAGE: local/dokploy-wp-${{ matrix.service.image }}:test
+          ARCH: ${{ matrix.arch.suffix }}
+        run: |
+          tag="$IMAGE:build-${GITHUB_RUN_ID}-$ARCH"
+          docker tag "$LOCAL_IMAGE" "$tag"
+          docker push "$tag"
+
+  publish-manifests:
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        image: [wordpress, phpmyadmin, nginx, plugin-installer]
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
         with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          pull: true
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: |
-            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:latest
-            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ env.SECURITY_RELEASE }}
-            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:sha-${{ github.sha }}
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
-          cache-from: type=gha,scope=${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish tested AMD64 and ARM64 images
+        env:
+          IMAGE: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+        run: |
+          release="build-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          docker buildx imagetools create \
+            --tag "$IMAGE:latest" \
+            --tag "$IMAGE:$SECURITY_RELEASE" \
+            --tag "$IMAGE:sha-$GITHUB_SHA" \
+            --tag "$IMAGE:$release" \
+            "$IMAGE:build-${GITHUB_RUN_ID}-amd64" "$IMAGE:build-${GITHUB_RUN_ID}-arm64"
+          docker buildx imagetools inspect "$IMAGE:$release"
+          echo "### $IMAGE:$release" >> "$GITHUB_STEP_SUMMARY"
+          echo "Validated natively on AMD64 and ARM64 before publication." >> "$GITHUB_STEP_SUMMARY"

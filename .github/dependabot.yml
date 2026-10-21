@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+  - package-ecosystem: docker
+    directories:
+      - /wordpress
+      - /phpmyadmin
+      - /nginx
+      - /plugin-installer
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

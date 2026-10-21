@@ -5,7 +5,7 @@ RUN chmod +x /usr/local/bin/ensure-patched-php \
     && ensure-patched-php
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
@@ -20,7 +20,13 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd zip opcache
 
 # Install Redis extension via PECL
-RUN pecl install redis \
+RUN set -eu; \
+    attempt=1; \
+    until pecl install redis; do \
+        if [ "$attempt" -ge 5 ]; then exit 1; fi; \
+        attempt=$((attempt + 1)); \
+        sleep 5; \
+    done \
     && docker-php-ext-enable redis
 
 # Install WP-CLI

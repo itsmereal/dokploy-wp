@@ -1,4 +1,4 @@
-FROM alpine:3.19
+FROM alpine:3.24
 
 # Install required packages
 RUN apk upgrade --no-cache && apk add --no-cache bash curl unzip

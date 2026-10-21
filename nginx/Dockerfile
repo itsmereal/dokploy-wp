@@ -1,7 +1,7 @@
 FROM nginx:alpine
 
 # Install envsubst (part of gettext) and wget for healthcheck
-RUN apk add --no-cache gettext wget
+RUN apk upgrade --no-cache && apk add --no-cache gettext wget
 
 # Copy nginx config template and entrypoint
 COPY default.conf.template /etc/nginx/templates/default.conf.template

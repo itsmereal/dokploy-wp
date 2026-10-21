@@ -30,8 +30,8 @@ services:
 
   wordpress:
     build:
-      context: ./wordpress
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: wordpress/Dockerfile
     environment:
       - WORDPRESS_DB_HOST=${WORDPRESS_DB_HOST:-db}
       - WORDPRESS_DB_USER=${WORDPRESS_DB_USER:-wordpress}
@@ -139,7 +139,9 @@ services:
         max_attempts: 3
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    build:
+      context: .
+      dockerfile: phpmyadmin/Dockerfile
     environment:
       - PMA_HOST=db
       - PMA_PORT=3306

@@ -1,5 +1,9 @@
 FROM wordpress:php8.3-fpm
 
+COPY php-security/ensure-patched-php.sh /usr/local/bin/ensure-patched-php
+RUN chmod +x /usr/local/bin/ensure-patched-php \
+    && ensure-patched-php
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
@@ -33,11 +37,13 @@ RUN wget -O /usr/local/bin/php-fpm-healthcheck \
 RUN echo "pm.status_path = /status" >> /usr/local/etc/php-fpm.d/zz-docker.conf
 
 # Copy custom entrypoint
-COPY docker-entrypoint-custom.sh /usr/local/bin/docker-entrypoint-custom.sh
+COPY wordpress/docker-entrypoint-custom.sh /usr/local/bin/docker-entrypoint-custom.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-custom.sh
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/html
+
+RUN ensure-patched-php --check-only && php-fpm -t
 
 ENTRYPOINT ["docker-entrypoint-custom.sh"]
 CMD ["php-fpm"]

@@ -13,6 +13,40 @@ Production-ready WordPress deployment stack optimized for Dokploy with Redis cac
 | **phpMyAdmin** | Database administration interface |
 | **Plugin Installer** | Automatically installs Redis Object Cache plugin |
 
+## PHP security updates
+
+WordPress and phpMyAdmin images require PHP 8.2.35, 8.3.36, 8.4.27 or
+8.5.12 (or a newer patch release on the same branch) to address
+[CVE-2026-109618 and CVE-2026-109619](https://www.php.net/archive/2026.php#2026-10-21-5).
+Unsupported PHP branches fail the build.
+
+When the upstream PHP 8.3 image is still vulnerable, the build verifies the
+SHA-256 of the official PHP 8.3.36 source and rebuilds PHP with the base
+image's original configuration and SAPI. Existing extensions must remain
+available. This temporary fallback retains build dependencies in the image;
+it is skipped automatically when upstream already supplies a patched runtime.
+
+CI pulls current base images, checks the PHP version and extensions before
+publishing, and builds both amd64 and arm64. Images are published as `latest`,
+`security-20261021`, and `sha-<full-commit-sha>`. The one-click template uses
+the security release tags for both WordPress and phpMyAdmin. Commit tags identify
+individual builds; use image digests when immutable deployment references are required.
+
+Existing Dokploy installations do not inherit template changes. Back up first,
+update the WordPress and phpMyAdmin image references, pull the images, and
+recreate those services. Check the running PHP version with `php -v`; an image
+tag or the inherited `PHP_VERSION` environment variable is not proof of patching.
+Keep site data volumes and database credentials unchanged.
+
+For local source builds, run from the repository root:
+
+```bash
+docker compose build --pull wordpress phpmyadmin
+```
+
+The published phpMyAdmin image is
+`ghcr.io/itsmereal/dokploy-wp-phpmyadmin:security-20261021`.
+
 ## Quick Start
 
 Pick one of the two deploy methods below, then follow the shared **Post-Deploy Setup** steps.

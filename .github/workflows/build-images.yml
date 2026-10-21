@@ -3,15 +3,42 @@ name: Build and Push Docker Images
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: docker-images-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/dokploy-wp
+  SECURITY_RELEASE: security-20261021
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: wordpress
+            context: .
+            file: wordpress/Dockerfile
+            php: true
+          - image: phpmyadmin
+            context: .
+            file: phpmyadmin/Dockerfile
+            php: true
+          - image: nginx
+            context: ./nginx
+            file: nginx/Dockerfile
+            php: false
+          - image: plugin-installer
+            context: ./plugin-installer
+            file: plugin-installer/Dockerfile
+            php: false
     permissions:
       contents: read
       packages: write
@@ -26,39 +53,59 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Build native image for validation
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          pull: true
+          load: true
+          platforms: linux/amd64
+          tags: local/dokploy-wp-${{ matrix.image }}:test
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      - name: Verify patched PHP runtime
+        if: matrix.php
+        env:
+          IMAGE: local/dokploy-wp-${{ matrix.image }}:test
+          SERVICE: ${{ matrix.image }}
+        run: |
+          docker run --rm --network none --entrypoint ensure-patched-php "$IMAGE" --check-only
+          if [ "$SERVICE" = wordpress ]; then
+            docker run --rm --network none --entrypoint php "$IMAGE" -r '
+              foreach (["mysqli", "pdo_mysql", "redis", "gd", "zip", "Zend OPcache"] as $ext) {
+                if (!extension_loaded($ext)) { fwrite(STDERR, "Missing extension: $ext\n"); exit(1); }
+              }'
+            docker run --rm --network none --entrypoint php-fpm "$IMAGE" -t
+          else
+            docker run --rm --network none --entrypoint php "$IMAGE" -r 'exit(extension_loaded("mysqli") ? 0 : 1);'
+            docker run --rm --network none --entrypoint apache2ctl "$IMAGE" -t
+          fi
+
       - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push WordPress image
+      - name: Publish validated multi-architecture images
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
-          context: ./wordpress
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          pull: true
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE_PREFIX }}-wordpress:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Nginx image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./nginx
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE_PREFIX }}-nginx:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Plugin Installer image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./plugin-installer
-          push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ env.IMAGE_PREFIX }}-plugin-installer:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:latest
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ env.SECURITY_RELEASE }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

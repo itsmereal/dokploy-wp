@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
   wordpress:
-    image: ghcr.io/itsmereal/dokploy-wp-wordpress:latest
+    image: ghcr.io/itsmereal/dokploy-wp-wordpress:security-20261021
     environment:
       - WORDPRESS_DB_HOST=db
       - WORDPRESS_DB_USER=wordpress
@@ -103,7 +103,7 @@ services:
       - internal
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
+    image: ghcr.io/itsmereal/dokploy-wp-phpmyadmin:security-20261021
     environment:
       - PMA_HOST=db
       - PMA_PORT=3306

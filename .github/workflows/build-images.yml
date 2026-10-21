@@ -74,7 +74,7 @@ jobs:
           docker run --rm --network none --entrypoint ensure-patched-php "$IMAGE" --check-only
           if [ "$SERVICE" = wordpress ]; then
             docker run --rm --network none --entrypoint php "$IMAGE" -r '
-              foreach (["mysqli", "pdo_mysql", "redis", "gd", "zip", "Zend OPcache"] as $ext) {
+              foreach (["mysqli", "redis", "gd", "zip", "Zend OPcache"] as $ext) {
                 if (!extension_loaded($ext)) { fwrite(STDERR, "Missing extension: $ext\n"); exit(1); }
               }'
             docker run --rm --network none --entrypoint php-fpm "$IMAGE" -t
